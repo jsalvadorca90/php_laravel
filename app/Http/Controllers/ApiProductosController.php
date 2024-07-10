@@ -6,9 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\Productos;
 use App\Models\ProductosFotos;
+// use Illuminate\Routing\Controller; //para uso del middleware
+
+
 
 class ApiProductosController extends Controller
 {
+    // también funciona así pero agregando "use Illuminate\Routing\Controller;"
     // public function __construct()
     // {
     //     $this->middleware('auth.basic');
