@@ -9,6 +9,10 @@ use App\Models\ProductosFotos;
 
 class ApiProductosController extends Controller
 {
+    // public function __construct()
+    // {
+    //     $this->middleware('auth.basic');
+    // }
     /**
      * Display a listing of the resource.
      */
