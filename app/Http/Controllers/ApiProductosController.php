@@ -4,17 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use App\Models\Categorias;
 use App\Models\Productos;
+use App\Models\ProductosFotos;
 
-class ApiCategoriasController extends Controller
+class ApiProductosController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $datos = Categorias::orderBy('id', 'desc')->get();
+        $datos = Productos::orderBy('id', 'desc')->get();
         return response()->json($datos, 200);
     }
 
@@ -39,11 +39,15 @@ class ApiCategoriasController extends Controller
             );
             return response()->json($array, 400);
         }
-        //crear el registro
-        Categorias::create(
+        //crear el registro de productos
+        Productos::create(
             [
-                'nombre'=>$request->input("nombre"),
-                'slug'=>Str::slug($request->input("nombre"))
+                'nombre'=>$request->input('nombre'),
+                'slug'=>Str::slug($request->input('nombre'), '-'),
+                'descripcion'=>$request->input('descripcion'), 
+                'precio'=>$request->input('precio'),
+                'categorias_id'=>$request->input('categorias_id'),
+                'fecha'=>date('Y-m-d')
             ]
         );
         //retornar un json
@@ -63,7 +67,7 @@ class ApiCategoriasController extends Controller
      */
     public function show(string $id)
     {
-        $datos=Categorias::where(['id'=>$id])->firstOrfail();
+        $datos=Productos::where(['id'=>$id])->firstOrfail();
         return response()->json( $datos, 200);
     }
 
@@ -72,23 +76,41 @@ class ApiCategoriasController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $json = json_decode(file_get_contents('php://input'), true);
-        if(!is_array($json ))
-            {
-                $array=array
+        $datos=Productos::where(['id'=>$id])->first();
+        //consultar si la tabla tiene datos
+        if(!is_object($datos))
+        {
+            $array=array
+            (
+                'response'=>array
                 (
-                    'response'=>array
+                    'estado'=>'Bad Request',
+                    'mensaje'=>'La peticion HTTP no trae datos para procesar'
+                )
+            ); 
+            return response()->json( $array, 404);
+        }else
+        {
+            $json = json_decode(file_get_contents('php://input'), true);
+            if(!is_array($json))
+            {
+                $array=
+                    array
                     (
-                        'estado'=>'Bad Request',
-                        'mensaje'=>'La peticion HTTP no trae datos para procesar ' 
-                    )
-                );  	
+                        'response'=>array
+                        (
+                            'estado'=>'Bad Request',
+                            'mensaje'=>'La peticion HTTP no trae datos para procesar'
+                        )
+                    );	
                 return response()->json($array, 400);
             }
             //ejecuto el update
-            $datos=Categorias::where(['id'=>$id])->firstOrFail();
-            $datos->nombre=$request->input('nombre');
-            $datos->slug=Str::slug($request->input('nombre'));
+            $datos->nombre=$json['nombre'];
+            $datos->slug=Str::slug($json['nombre'], '-');
+            $datos->precio=$json['precio'];
+            $datos->descripcion=$json['descripcion'];
+            $datos->categorias_id=$json['categorias_id'];
             $datos->save();
             //retorno un json
             $array=array
@@ -96,10 +118,11 @@ class ApiCategoriasController extends Controller
                 'response'=>array
                 (
                     'estado'=>'ok',
-                    'mensaje'=>'Se modificó el registro exitosamente', 
+                    'mensaje'=>'Se modificó el registro exitosamente'
                 )
             ); 
             return response()->json( $array, 200);
+        }
     }
 
     /**
@@ -107,30 +130,32 @@ class ApiCategoriasController extends Controller
      */
     public function destroy(string $id)
     {
-        $datos=Categorias::where(['id'=>$id])->firstOrFail();
-        if(Productos::where(['categorias_id'=>$id])->count() == 0)
+        $datos=Productos::where(['id'=>$id])->firstOrFail();        
+        //existe ProductosFotos con productos_id
+        $existe = ProductosFotos::where(['productos_id'=>$id])->count();
+        if($existe==0)
         {
-            Categorias::where(['id'=>$id])->delete();
+            Productos::where(['id'=>$id])->delete();
             $array=array
             (
                 'response'=>array
                 (
-                    'estado'=>'Ok',
+                    'estado'=>'ok',
                     'mensaje'=>'Se eliminó el registro exitosamente'
                 )
             ); 
             return response()->json( $array, 200);
         }else
-        {
+        { 
             $array=array
             (
                 'response'=>array
                 (
-                    'estado'=>'Bad request',
-                    'mensaje'=>'No se puede eliminar el registro'
+                    'estado'=>'Bad Request',
+                    'mensaje'=>'No se puede eliminar el registro',  
                 )
-            ); 
+            );           
             return response()->json( $array, 400);
-        }
+        }        
     }
 }
